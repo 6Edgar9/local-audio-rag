@@ -1,0 +1,6 @@
+*.mp3
+base_conocimiento/
+__pycache__/
+venv/
+transcripts/
+not.md
