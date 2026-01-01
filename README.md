@@ -136,14 +136,36 @@ py chat_audio.py
 ```
 *Te permite conversar con la IA sobre los archivos desde la terminal busca todos los archivos .txt y los carga en la RAM*
 
-## Estructura del Proyecto
+## Interfaz Web (Quipu AI)
 
+Este proyecto incluye una interfaz gráfica moderna construida con Streamlit.
+
+**Características:**
+* 💬 **Chat Interactivo:** Con historial y respuestas en tiempo real.
+* 🧠 **Memoria Selectiva:** Elige qué documentos activar/desactivar en la barra lateral.
+* 📺 **YouTube Loader:** Descarga y transcribe videos automáticamente.
+* 🗣️ **Respuesta de Voz:** TTS Neural con acentos regionales (Colombia, Perú, México, España).
+
+**Ejecución:**
+```bash
+streamlit run web_app_master.py
+```
+
+### Estructura del Proyecto
 ```text
-.
-├── base_conocimiento/      # Aquí se guardan los TXT generados
-├── transcribir_pro.py      # Script ETL (Audio -> Texto con Timestamps)
-├── README.md               # Documentación
-└── requirements.txt        # Dependencias
+📂 local-audio-rag/
+│
+├── 📂 base_conocimiento/      # (Tus .txt)
+├── 📂 temp_uploads/           # (Temporales)
+│
+├── web_app_master.py          # Aplicación principal
+├── requirements.txt           # Lista de dependencias
+├── README.md
+├── transcribir_pro.py
+├── transcribir.py
+├── chat_audio.py
+└── .gitignore
+
 
 ```
 

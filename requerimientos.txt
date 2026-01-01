@@ -1,0 +1,6 @@
+ollama
+openai-whisper
+streamlit
+yt-dlp
+edge-tts
+asyncio

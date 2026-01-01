@@ -1,6 +1,7 @@
 import ollama
 import os
 import glob
+import tts_manager  ### NUEVO: Importamos tu módulo de voz
 
 MODELO = "llama3.2"
 CARPETA_DATOS = "base_conocimiento"
@@ -45,13 +46,12 @@ while True:
     if pregunta.lower() in ["salir", "exit", "chau"]:
         break
 
-    # Prompt Engineering: Le damos rol y contexto
     instrucciones = f"""
-    Eres un asistente experto en Ingeniería de Sistemas.
+    Eres un asistente experto en Ingeniería de Sistemas llamado 'VoluNet AI'.
     Responde basándote EXCLUSIVAMENTE en la siguiente Información de Contexto.
     Si la respuesta no está en el contexto, di "No tengo información sobre eso en mis archivos".
     
-    INFORMACIÓN DE CONTEXTO (Tus archivos):
+    INFORMACIÓN DE CONTEXTO:
     {contenido_contexto}
     
     PREGUNTA DEL USUARIO:
@@ -63,10 +63,22 @@ while True:
     stream = ollama.chat(
         model=MODELO, 
         messages=[{'role': 'user', 'content': instrucciones}],
-        stream=True # Efecto "escritura" como ChatGPT
+        stream=True 
     )
     
     print("\rIA: ", end="")
+    
+    ### NUEVO: Variable acumuladora para guardar el texto completo
+    respuesta_completa = "" 
+    
     for chunk in stream:
-        print(chunk['message']['content'], end="", flush=True)
+        trozo_texto = chunk['message']['content']
+        print(trozo_texto, end="", flush=True) # Imprime en pantalla (Efecto Matrix)
+        respuesta_completa += trozo_texto      # Guarda en memoria para el audio
+        
     print("") # Salto de línea final
+    
+    ### NUEVO: Enviamos el texto completo al módulo de voz
+    # Validamos que no esté vacío para evitar errores
+    if respuesta_completa.strip():
+        tts_manager.hablar(respuesta_completa)
