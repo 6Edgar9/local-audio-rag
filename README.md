@@ -1,181 +1,132 @@
-# Local Audio RAG Assistant (Llama 3.2 + Whisper)
+# 🧶 Quipu AI: Sistema RAG Multimodal Local
 
-Un sistema de **Generación Aumentada por Recuperación (RAG)** ejecutado 100% en local. Este proyecto permite transcribir archivos de audio (reuniones, clases, podcasts) y conversar con ellos utilizando Inteligencia Artificial, garantizando **privacidad total** y cero coste de API.
+![Python](https://img.shields.io/badge/Python-3.11-blue?logo=python)
+![Docker](https://img.shields.io/badge/Docker-v24+-2496ED?logo=docker)
+![Architecture](https://img.shields.io/badge/Architecture-RAG-orange)
+![License](https://img.shields.io/badge/License-MIT-green)
 
-> **Arquitectura:** Audio ➔ Whisper (ETL) ➔ Embeddings (LanceDB) ➔ Ollama (Llama 3.2)
+**Quipu AI** es una plataforma de ingeniería de software diseñada para la gestión del conocimiento auditivo. Implementa una arquitectura **RAG (Retrieval-Augmented Generation)** ejecutada 100% *On-Premise* (local), garantizando privacidad total.
+
+El sistema transforma datos no estructurados (audio/video) en conocimiento consultable, integrando modelos de vanguardia como **Whisper** (STT), **Llama 3.2** (LLM) y **Edge-TTS**.
 
 ---
 
-## Requisitos Previos
+## Arquitectura del Sistema
 
-Para ejecutar este proyecto necesitas tener instalado en tu sistema:
+El flujo de datos sigue un pipeline ETL (Extract, Transform, Load) seguido de inferencia generativa:
 
-* **Python 3.10+**
-* **[Ollama](https://ollama.com/):** Motor de inferencia local.
-* **[FFmpeg](https://ffmpeg.org/):** Necesario para el procesamiento de audio.
-* **[AnythingLLM Desktop](https://useanything.com/):** Interfaz para gestión de RAG y base de datos vectorial.
-
-## Instalación
-
-1. **Clonar el repositorio:**
-```bash
-git clone https://github.com/6Edgar9/local-audio-rag.git
-cd local-audio-rag
-
-```
-
-2. **Crear entorno virtual (Opcional pero recomendado):**
-```bash
-python -m venv venv
-# En Windows:
-.\venv\Scripts\activate
+```mermaid
+graph TD
+    A[Input: MP3 / YouTube] -->|Descarga & Conversión| B(FFmpeg Processor)
+    B -->|Inferencia STT| C{OpenAI Whisper}
+    C -->|Transcripción + Metadata| D[Base de Conocimiento .TXT]
+    
+    User[Usuario] -->|Consulta| E[Interfaz Streamlit]
+    E -->|Selección de Contexto| D
+    D -->|RAG: Contexto + Prompt| F[Ollama / Llama 3.2]
+    F -->|Respuesta Texto| E
+    F -->|Síntesis Neural| G[Edge TTS]
+    G -->|Audio Output| User
 
 ```
 
-3. **Instalar dependencias:**
+---
+
+## Funcionalidades Clave
+
+### 1. Núcleo RAG (Retrieval-Augmented Generation)
+
+* **Ingesta Multifuente:** Soporta archivos locales (`.mp3`, `.wav`) y enlaces directos de YouTube (vía `yt-dlp`).
+* **Memoria Selectiva:** Sistema de filtrado dinámico que permite al usuario activar/desactivar documentos específicos del "cerebro" de la IA antes de realizar una consulta.
+
+### 2. Interfaz Multimodal
+
+* **Entrada:** Chat de texto.
+* **Salida:** Texto enriquecido (Markdown) y Voz Neural de alta fidelidad.
+* **Voces Regionales:** Soporte nativo para acentos de **Colombia** (`es-CO`), **Perú** (`es-PE`), **México** (`es-MX`) y **España** (`es-ES`).
+
+### 3. Infraestructura Portable
+
+* **Dockerizado:** Contenedor optimizado basado en Linux Debian (Python 3.11-slim) con FFmpeg preconfigurado.
+* **Acceso Remoto:** Configuración lista para tunelización vía **Ngrok**, permitiendo acceso desde dispositivos móviles.
+
+---
+
+## Guía de Despliegue
+
+### Opción A: Producción (Docker) - Recomendado
+
+Despliegue agnóstico del sistema operativo.
+
+1. **Prerrequisitos:** Docker Desktop + Ollama (`ollama serve` en el host).
+2. **Build & Run:**
 ```bash
-pip install openai-whisper ollama
-
-```
-
-## Guía de Uso
-
-### FASE 1: Preparación del Entorno
-
-1. **Iniciar el Motor (Ollama):**
-Asegúrate de que el servidor está escuchando en el puerto por defecto.
-```bash
-ollama serve
-
-```
-
-2. **Descargar/Verificar Modelo:**
-Usamos `llama3.2` (3B) por ser eficiente para CPU/GPU integrada.
-```bash
-ollama run llama3.2
-# Para verificar que está listo:
-ollama list
-
-```
-
-3. **Verificar FFmpeg:**
-Fundamental para que Whisper funcione.
-```bash
-ffmpeg -version
+docker build -t quipu-ai .
+# El flag -e OLLAMA_HOST conecta el contenedor con el LLM del anfitrión
+docker run -p 8501:8501 -e OLLAMA_HOST=[http://host.docker.internal:11434](http://host.docker.internal:11434) quipu-ai
 
 ```
 
 
-### FASE 2: Extracción de Datos (ETL)
+3. **Acceso:** `http://localhost:8501`
 
-Puedes usar el comando directo de Whisper, pero se recomienda usar el script `transcribir_pro.py` incluido en este repo para procesar múltiples archivos y añadir **marcas de tiempo**.
+### Opción B: Desarrollo (Local Python)
 
-**Opción A: Script Automatizado (Recomendado)**
-Coloca tus archivos `.mp3` en la carpeta raíz y ejecuta:
+Para editar código fuente.
 
+1. **Instalar dependencias:**
 ```bash
-py transcribir_pro.py
+pip install -r requerimientos.txt
 
 ```
 
-*Esto generará archivos `.txt` en la carpeta `/base_conocimiento` con timestamps.*
 
-Una alternativa menos potente es:
-
-```bash
-py transcribir.py
-
-```
-*Se recomienda usar el primer script*
-
-**Opción B: Comando Manual**
-
-```bash
-whisper "nombre_audio.mp3" --model small --language es --output_format txt --initial_prompt "Una conversación"
-
-```
-
-### FASE 3: Configuración de la Suite (AnythingLLM)
-
-1. **Configuración del Proveedor (Setup Inicial):**
-* Ve a **Settings** (tuerca) ➔ **AI Providers** ➔ **LLM**.
-* **Provider:** Ollama.
-* **URL:** `http://127.0.0.1:11434`.
-* **Model:** `llama3.2:latest`.
-* **Max Tokens:** 4096 (Recomendado para 16GB RAM).
-
-
-2. **Base de Datos Vectorial:**
-* Ve a **Vector Database** y selecciona **LanceDB** (Local).
-
-
-3. **Ingesta de Datos ("Entrenamiento"):**
-* Crea un nuevo **Workspace** (ej: `Proyecto_Inicial`).
-* Sube los archivos `.txt` generados en la Fase 2.
-* Haz clic en **"Move to Workspace"**.
-* Haz clic en **"Save and Embed"**.
-* *Espera a que finalice el proceso de vectorización.*
-
-### FASE 4: Interacción (Chat)
-
-Ahora puedes interrogar a tus audios.
-
-**Ejemplos de Prompts:**
-
-* *"Resume los puntos clave de la reunión basándote en el audio."*
-* *"¿Qué dijo la Persona A sobre el presupuesto? Cita el minuto exacto."*
-* *"Identifica conclusiones técnicas sobre la arquitectura del sistema."*
-
-### Alternativa*
-
-Para la ejecución del chat y Prompts sobre los .txt de audios también puedes ejecutar el script:
-
-```bash
-py chat_audio.py
-
-```
-*Te permite conversar con la IA sobre los archivos desde la terminal busca todos los archivos .txt y los carga en la RAM*
-
-## Interfaz Web (Quipu AI)
-
-Este proyecto incluye una interfaz gráfica moderna construida con Streamlit.
-
-**Características:**
-* 💬 **Chat Interactivo:** Con historial y respuestas en tiempo real.
-* 🧠 **Memoria Selectiva:** Elige qué documentos activar/desactivar en la barra lateral.
-* 📺 **YouTube Loader:** Descarga y transcribe videos automáticamente.
-* 🗣️ **Respuesta de Voz:** TTS Neural con acentos regionales (Colombia, Perú, México, España).
-
-**Ejecución:**
+2. **Ejecutar Suite:**
 ```bash
 streamlit run web_app_master.py
-```
-
-### Estructura del Proyecto
-```text
-📂 local-audio-rag/
-│
-├── 📂 base_conocimiento/      # (Tus .txt)
-├── 📂 temp_uploads/           # (Temporales)
-│
-├── web_app_master.py          # Aplicación principal
-├── requirements.txt           # Lista de dependencias
-├── README.md
-├── transcribir_pro.py
-├── transcribir.py
-├── chat_audio.py
-└── .gitignore
-
 
 ```
 
-## Notas Técnicas
 
-* **Hardware:** Probado en Intel i7 (12ª Gen) + 16GB RAM + Intel Iris Xe.
-* **Modelos:** Se utiliza `whisper-small` para transcripción y `llama3.2-3b` para inferencia, optimizados para ejecutarse sin GPU dedicada.
-* **Privacidad:** Todos los datos se procesan localmente (On-Premise). Nada se envía a la nube.
 
 ---
+
+## Herramientas CLI (Modo Avanzado)
+
+El repositorio incluye scripts independientes para tareas por lotes (Batch Processing) sin usar la interfaz web:
+
+| Script | Función | Comando |
+| --- | --- | --- |
+| `transcribir_pro.py` | Transcribe **todos** los audios de la carpeta actual y genera `.txt` con timestamps. Ideal para procesar 10+ archivos de golpe. | `python transcribir_pro.py` |
+| `descargar_yt.py` | Descargador puro de audio YouTube (MP3 Alta Calidad) sin transcripción. | `python descargar_yt.py` |
+| `tts_manager.py` | Módulo de pruebas para síntesis de voz y verificación de audio. | `python tts_manager.py` |
+
+---
+
+## Solución de Problemas (Troubleshooting)
+
+**1. Error: `FFmpeg not found**`
+
+* **Causa:** El sistema no puede procesar audio.
+* **Solución:**
+* *Windows:* `winget install Gyan.FFmpeg` y reinicia la terminal.
+* *Docker:* Asegúrate de que el `Dockerfile` incluya `apt-get install -y ffmpeg`.
+
+
+
+**2. Docker no conecta con Ollama**
+
+* **Causa:** El contenedor no ve el `localhost` de tu PC.
+* **Solución:** Usa siempre `-e OLLAMA_HOST=http://host.docker.internal:11434` al ejecutar el `docker run`.
+
+**3. La transcripción es lenta**
+
+* **Causa:** Whisper está usando la CPU.
+* **Optimización:** En `web_app_master.py`, cambia `MODELO_WHISPER = "small"` a `"base"` o `"tiny"` para mayor velocidad (menor precisión).
+
+---
+
+Desarrollado como proyecto de Ingeniería de Sistemas para la gestión de conocimiento académico y empresarial.
 
 #### Edrem
 #### Dios, la Patria y Assembly
