@@ -152,6 +152,8 @@ streamlit run web_app_master.py
 ```
 
 ### Estructura del Proyecto
+Asegúrate de que tu carpeta se vea así antes de subir el último commit a GitHub:
+
 ```text
 📂 local-audio-rag/
 │

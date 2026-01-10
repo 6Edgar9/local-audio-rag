@@ -1,0 +1,12 @@
+__pycache__/
+audio/
+base_conocimiento/
+temp_uploads/
+venv/
+transcripts/
+not.md
+descargar_yt.py
+*.mp3
+tts_manager.py
+web_app_pro.py
+web_app.py
